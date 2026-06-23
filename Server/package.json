@@ -1,0 +1,38 @@
+{
+  "name": "api-monitoring",
+  "version": "1.0.0",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "processor": "node src/modules/processor/consumer.js",
+    "init": "node init-system.js",
+    "init:env": "node init-system.js --generate-env"
+  },
+  "keywords": [
+    "api",
+    "monitoring",
+    "tracking",
+    "analytics"
+  ],
+  "author": "",
+  "license": "ISC",
+  "description": "Real-time API monitoring and alerting system for microservices architecture.",
+  "dependencies": {
+    "amqplib": "^2.0.1", 
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.5.2",
+    "helmet": "^8.2.0",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^9.7.1",
+    "pg": "^8.22.0",
+    "uuid": "^14.0.1",
+    "winston": "^3.19.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
+}
