@@ -22,7 +22,7 @@ const config = {
     },
 
     rabbitmq: {
-        url: process.env.RABBITMQ_URL || "amqp://localhost:5672",
+        url: process.env.RABBITMQ_URL || "amqp://guest:guest@localhost:5672",
         queue: process.env.RABBITMQ_QUEUE || "api_hits",
         publisherConfirms: process.env.RABBITMQ_PUBLISHER_CONFIRMS === "true" || false, // Msg queue me sent krne ke baad ackg receive hua hai ya nahi iske liye TRUE rkha hai, if FALSE hai toh msg sent hone ke baad it will forget everything.
         retryAttempts: parseInt(process.env.RABBITMQ_RETRY_ATTEMPTS || "3", 10),

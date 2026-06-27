@@ -1,5 +1,5 @@
 import winston from "winston" // Used for logger
-import config from "./index"
+import config from "./index.js"
 
 /**
  * Winston logger configuration for logging application events and errors.
