@@ -126,3 +126,55 @@ and
 every endpoint follows one standard response format.
 
 This makes frontend integration simpler and keeps the API predictable.
+
+-----------------------------------------------------
+
+# Update — Day 3
+
+---
+
+## Why Graceful Shutdown?
+
+Applications rarely stop unexpectedly by choice.
+
+Graceful shutdown allows the server to:
+
+* Finish in-flight requests
+* Close database connections
+* Close RabbitMQ channels
+* Prevent data corruption
+
+This becomes increasingly important in containerized and production environments.
+
+---
+
+## Why Centralized Error Handling?
+
+Instead of handling errors in every route independently, the application uses a single middleware responsible for formatting and returning errors consistently.
+
+Benefits:
+
+* Cleaner route handlers
+* Consistent API responses
+* Easier debugging
+* Better maintainability
+
+---
+
+## Why Dockerize the Application?
+
+Running the application inside Docker ensures the same runtime environment across local development and deployment.
+
+It also simplifies onboarding and infrastructure management.
+
+---
+
+## Why Initialize Services During Startup?
+
+Instead of connecting to databases on every request, external services are initialized during application startup.
+
+Benefits:
+
+* Faster request handling
+* Early detection of configuration issues
+* Centralized lifecycle management
