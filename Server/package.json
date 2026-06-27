@@ -2,6 +2,7 @@
   "name": "api-monitoring",
   "version": "1.0.0",
   "main": "src/server.js",
+  "type": "module",
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
@@ -19,8 +20,9 @@
   "license": "ISC",
   "description": "Real-time API monitoring and alerting system for microservices architecture.",
   "dependencies": {
-    "amqplib": "^2.0.1", 
+    "amqplib": "^2.0.1",
     "bcryptjs": "^3.0.3",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
