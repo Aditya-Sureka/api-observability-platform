@@ -3,7 +3,7 @@ services:
     image: postgres:15-alpine
     container_name: api-monitoring-postgres
     environment:
-      POSTGRES_USER: api_monitoring_user
+      POSTGRES_USER: postgres
       POSTGRES_PASSWORD: securepassword
       POSTGRES_DB: api_monitoring_db
       POSTGRES_INITDB_ARGS: "--encoding=UTF-8"
@@ -16,7 +16,7 @@ services:
       - api-monitoring-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U api_monitoring_user -d api_monitoring_db -h localhost -p 5432"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d api_monitoring_db -h localhost -p 5432"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -87,7 +87,7 @@ services:
     # PostgreSQL ( docker container )
       PG_HOST: postgres
       PG_PORT: 5432
-      PG_DATABASE: api_monitoring
+      PG_DATABASE: api_monitoring_db
       PG_USER: postgres
       PG_PASSWORD: securepassword
 
@@ -135,7 +135,7 @@ services:
       # PostgreSQL ( docker container )
       PG_HOST: postgres
       PG_PORT: 5432
-      PG_DATABASE: api_monitoring
+      PG_DATABASE: api_monitoring_db
       PG_USER: postgres
       PG_PASSWORD: securepassword
 
