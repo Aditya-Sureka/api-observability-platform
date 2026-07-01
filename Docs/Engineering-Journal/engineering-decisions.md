@@ -178,3 +178,48 @@ Benefits:
 * Faster request handling
 * Early detection of configuration issues
 * Centralized lifecycle management
+
+-----------------------------------------------------------------------------------------------------------------------
+# Update — Day 4
+
+---
+
+## Why Repository Pattern?
+
+Repositories isolate database logic from business logic.
+
+Benefits:
+
+- Easier testing
+- Cleaner services
+- Database implementation can change without affecting business logic
+
+---
+
+## Why Service Layer?
+
+Business rules belong inside services.
+
+Controllers should only coordinate requests and responses.
+
+---
+
+## Why Dependency Injection?
+
+Dependency Injection removes tight coupling between components.
+
+Instead of creating dependencies internally, they are provided externally.
+
+Benefits:
+
+- Better testing
+- Easier maintenance
+- Loose coupling
+
+---
+
+## Why Middleware?
+
+Authentication, authorization and validation are cross-cutting concerns.
+
+Moving them into middleware keeps controllers focused only on request handling.
