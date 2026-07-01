@@ -9,6 +9,7 @@ import rabbitmq from "./shared/config/rabbitmq.js";
 import errorHandler from "./shared/middleware/errorHandler.js";
 import ResponseFormatter from "./shared/utils/responseFormatter.js";
 import cookieParser from "cookie-parser";
+import authRouter from "./services/auth/routes/authRouter.js";
 
 // Routers
 // import authRouter from "./routes/auth.js";
@@ -88,7 +89,7 @@ app.get("/", (req, res) => {
  * API Routes
  */
 
-// app.use("/api/auth", authRouter);
+app.use("/api/auth", authRouter);
 // app.use("/api/hit", ingestRouter);
 // app.use("/api/analytics", analyticsRouter);
 // app.use("/api", clientRouter);
@@ -148,7 +149,7 @@ async function startServer() {
 
     const server = app.listen(config.port, () => {
       logger.info(`Server is running on port ${config.port}`);
-      logger.info(`Environment: ${config.env}`);
+      logger.info(`Environment: ${config.node_env}`);
       logger.info(`API available at: http://localhost:${config.port}`);
     });
 
@@ -170,11 +171,6 @@ async function startServer() {
         }
       });
     };
-
-    setTimeout(() => {
-      logger.error("Forced shutdown");
-      process.exit(1);
-    }, 10000);
 
     process.on("SIGINT", () => gracefulShutdown("SIGINT"));
     process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
