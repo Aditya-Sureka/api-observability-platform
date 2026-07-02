@@ -1,6 +1,7 @@
 import BaseRepository from "./BaseRepository.js";
 import User from "../../../shared/models/User.js";
 import logger from "../../../shared/config/logger.js";
+import AppError from "../../../shared/utils/AppError.js";
 
 /**
  * MongoDB implementation of the UserRepository.
@@ -23,7 +24,7 @@ class MongoUserRepository extends BaseRepository {
       if (data.role === "super_admin" && !data.permissions) {
         data.permissions = {
           canCreateApiKeys: true,
-          canManageUsers: true,
+          canManagerUsers: true,
           canViewAnalytics: true,
           canExportData: true,
         };
@@ -36,6 +37,16 @@ class MongoUserRepository extends BaseRepository {
       return user;
     } catch (error) {
       logger.error("Error creating user", error);
+
+      if (error?.name === "MongoServerError" && error?.code === 11000) {
+        const duplicateFields = Object.keys(error.keyValue || {});
+        const fieldLabel = duplicateFields.length > 0 ? duplicateFields.join(", ") : "field";
+        throw new AppError(
+          `A user with the same ${fieldLabel} already exists.`,
+          409,
+        );
+      }
+
       throw error;
     }
   }

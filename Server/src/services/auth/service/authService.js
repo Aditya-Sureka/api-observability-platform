@@ -3,6 +3,7 @@ import AppError from "../../../shared/utils/AppError.js";
 import jwt from "jsonwebtoken";
 import logger from "../../../shared/config/logger.js";
 import bcrypt from "bcryptjs";
+import { APPLICATION_ROLES } from "../../../shared/constants/roles.js";
 
 /**
  * AuthService handles user authentication and authorization related operations such as onboarding super admin, generating tokens, and formatting user responses.

@@ -9,13 +9,16 @@ import rabbitmq from "./shared/config/rabbitmq.js";
 import errorHandler from "./shared/middleware/errorHandler.js";
 import ResponseFormatter from "./shared/utils/responseFormatter.js";
 import cookieParser from "cookie-parser";
-import authRouter from "./services/auth/routes/authRouter.js";
+
 
 // Routers
-// import authRouter from "./routes/auth.js";
-// import ingestRouter from "./routes/ingest.js";
-// import analyticsRouter from "./routes/analytics.js";
-// import clientRouter from "./routes/client.js";
+import authRouter from "./services/auth/routes/authRouter.js";
+import clientRouter from "./services/client/routes/clientRoutes.js";
+
+
+
+
+
 /**
  * Initialize and configure the Express application with necessary middleware, database connections, and error handling.
  */
@@ -92,7 +95,7 @@ app.get("/", (req, res) => {
 app.use("/api/auth", authRouter);
 // app.use("/api/hit", ingestRouter);
 // app.use("/api/analytics", analyticsRouter);
-// app.use("/api", clientRouter);
+app.use("/api", clientRouter);
 
 /**
  * 404 Handler
