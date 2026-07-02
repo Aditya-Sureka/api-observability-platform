@@ -223,3 +223,42 @@ Benefits:
 Authentication, authorization and validation are cross-cutting concerns.
 
 Moving them into middleware keeps controllers focused only on request handling.
+
+
+-------------------------------------------------------------------------------------------------------
+
+# Update — Day 5
+
+---
+
+## Why Separate Client and User?
+
+Users represent people.
+
+Clients represent applications or services.
+
+One user can own multiple clients, and each client can have its own API keys.
+
+Separating these concepts keeps authentication independent from monitored applications.
+
+---
+
+## Why API Keys?
+
+API keys provide a lightweight way for client applications to authenticate requests without exposing user credentials.
+
+This is especially useful for server-to-server communication.
+
+---
+
+## Why Use `.populate()`?
+
+MongoDB stores relationships using ObjectIds.
+
+Using `.populate()` allows related documents to be fetched without writing multiple manual queries, keeping the code cleaner and easier to maintain.
+
+---
+
+## Why Continue Using Dependency Injection?
+
+As more modules are added, Dependency Injection keeps components loosely coupled and easier to test, while reducing direct dependencies between services.
