@@ -262,3 +262,84 @@ Using `.populate()` allows related documents to be fetched without writing multi
 ## Why Continue Using Dependency Injection?
 
 As more modules are added, Dependency Injection keeps components loosely coupled and easier to test, while reducing direct dependencies between services.
+
+
+-----------------------------------------------------------------------------------------------------------------------------------
+
+# Update — Day 6
+
+---
+
+## Why Circuit Breaker?
+
+External services eventually fail.
+
+Instead of continuously sending requests to an unhealthy dependency, the Circuit Breaker temporarily stops communication until recovery.
+
+Benefits
+
+- Prevents cascading failures
+- Reduces unnecessary load
+- Improves system availability
+
+---
+
+## Why Retry with Exponential Backoff?
+
+Many network failures are transient.
+
+Increasing retry intervals gives downstream services time to recover while reducing traffic spikes.
+
+Adding Jitter prevents every client from retrying simultaneously.
+
+---
+
+## Why Event-Driven Architecture?
+
+Publishing events through RabbitMQ decouples producers from consumers.
+
+Benefits
+
+- Loose coupling
+- Better scalability
+- Easier horizontal scaling
+- Improved fault tolerance
+
+---
+
+## Why Factory Method?
+
+Centralizing object creation simplifies dependency management and makes future extensions easier without modifying existing business logic.
+
+------------------------------------------------------------------------------------------------------------------------------
+# Update — Day 7
+
+---
+
+## Why Separate Producer and Consumer?
+
+The API server should respond quickly.
+
+Heavy processing is delegated to background consumers so API performance remains consistent.
+
+---
+
+## Why Use Two Databases?
+
+MongoDB stores raw monitoring events because document storage is flexible and efficient for high-volume event data.
+
+PostgreSQL stores aggregated metrics because relational databases are better suited for analytical queries.
+
+---
+
+## Why Acknowledge Messages After Processing?
+
+Messages are acknowledged only after processing succeeds.
+
+This prevents message loss and allows RabbitMQ to redeliver events if processing fails.
+
+---
+
+## Why Dockerize the Consumer?
+
+Running the consumer as an independent container allows it to scale separately from the API server and better reflects a production deployment.
