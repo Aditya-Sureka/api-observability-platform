@@ -7,6 +7,7 @@ class RabbitMQConnection {
     this.connection = null;
     this.channel = null;
     this.isConnecting = false;
+    this.isClosing = false;
   }
 
   async connect() {
@@ -79,26 +80,50 @@ class RabbitMQConnection {
   }
 
   getStatus() {
-    if (!this.connect || !this.channel) return "disconnected";
-    if (this.connect.closing) return "closing";
+    if (!this.connection || !this.channel) return "disconnected";
+    if (this.isClosing) return "closing";
     return "connected";
   }
 
   async close() {
+    if (this.isClosing) {
+      return;
+    }
+
+    this.isClosing = true;
+
     try {
       if (this.channel) {
-        await this.channel.close();
+        try {
+          await this.channel.close();
+        } catch (error) {
+          if (error?.message !== "Channel closed") {
+            throw error;
+          }
+        }
         this.channel = null;
       }
       if (this.connection) {
-        await this.connection.close();
+        try {
+          await this.connection.close();
+        } catch (error) {
+          if (error?.message !== "Connection closing" && error?.message !== "Connection closed") {
+            throw error;
+          }
+        }
         this.connection = null;
       }
 
       logger.info("RabbitMq connection closed");
     } catch (error) {
       logger.error("Error is closing RabbitMQ connection : ", error);
+    } finally {
+      this.isClosing = false;
     }
+  }
+
+  async disconnect() {
+    return this.close();
   }
 }
 
