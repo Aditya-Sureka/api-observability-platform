@@ -160,7 +160,7 @@ export class MetricsRepository extends BaseRepository {
                 method,
                 SUM(total_hits) AS total_hits,
                 SUM(avg_latency * total_hits) / NULLIF(SUM(total_hits), 0) as avg_latency,
-                SUM(error_hits) AS error_hits,
+                SUM(error_hits) AS error_hits
             FROM endpoint_metrics
         `;
 
@@ -174,7 +174,7 @@ export class MetricsRepository extends BaseRepository {
       }
 
       if (startTime) {
-        query += clientId != null ? `AND` : ` WHERE`;
+        query += clientId != null ? ` AND` : ` WHERE`;
         query += ` time_bucket >= $${paramIndex}`;
         params.push(startTime);
         paramIndex++;
@@ -192,6 +192,95 @@ export class MetricsRepository extends BaseRepository {
       return result.rows;
     } catch (error) {
       this.logger.error("Error occurred while fetching top endpoints:", error);
+      throw error;
+    }
+  }
+
+  async getTimeSeries({
+    clientId,
+    serviceName = null,
+    endpoint = null,
+    method = null,
+    startTime = null,
+    endTime = null,
+    limit = 100,
+  } = {}) {
+    try {
+      const safeLimit = Math.min(Math.max(1, limit), MAX_LIMIT);
+
+      let query = `
+        SELECT
+            service_name,
+            endpoint,
+            method,
+            time_bucket,
+            SUM(total_hits) AS total_hits,
+            SUM(error_hits) AS error_hits,
+            SUM(avg_latency * total_hits) / NULLIF(SUM(total_hits), 0) AS avg_latency,
+            MIN(min_latency) AS min_latency,
+            MAX(max_latency) AS max_latency
+        FROM endpoint_metrics
+      `;
+
+      const params = [];
+      let paramIndex = 1;
+      const whereConditions = [];
+
+      if (clientId != null) {
+        whereConditions.push(`client_id = $${paramIndex}`);
+        params.push(clientId);
+        paramIndex++;
+      }
+
+      if (serviceName) {
+        whereConditions.push(`service_name = $${paramIndex}`);
+        params.push(serviceName);
+        paramIndex++;
+      }
+
+      if (endpoint) {
+        whereConditions.push(`endpoint = $${paramIndex}`);
+        params.push(endpoint);
+        paramIndex++;
+      }
+
+      if (method) {
+        whereConditions.push(`method = $${paramIndex}`);
+        params.push(method);
+        paramIndex++;
+      }
+
+      if (startTime) {
+        whereConditions.push(`time_bucket >= $${paramIndex}`);
+        params.push(startTime);
+        paramIndex++;
+      }
+
+      if (endTime) {
+        whereConditions.push(`time_bucket <= $${paramIndex}`);
+        params.push(endTime);
+        paramIndex++;
+      }
+
+      if (whereConditions.length > 0) {
+        query += ` WHERE ${whereConditions.join(" AND ")}`;
+      }
+
+      query += `
+        GROUP BY service_name, endpoint, method, time_bucket
+        ORDER BY time_bucket DESC
+        LIMIT $${paramIndex}
+      `;
+
+      params.push(safeLimit);
+
+      const result = await this._query(query, params);
+      return result.rows;
+    } catch (error) {
+      this.logger.error(
+        "Error occurred while fetching time series metrics:",
+        error,
+      );
       throw error;
     }
   }
