@@ -1,350 +1,269 @@
-# API Monitoring & Alerting System
+# API-Monitoring
 
-A real-time API monitoring and alerting system designed for microservices architecture. This project tracks API health, performance metrics, and provides intelligent alerting capabilities with asynchronous message queue processing.
+> **API observability in minutes.** Drop-in middleware streams your API traffic into
+> a multi-tenant dashboard with live traffic, error rates, and latency — secured by a
+> strict role-based access matrix.
 
-## 📋 Overview
+API-Monitoring is a self-hostable, SaaS-style API monitoring system. A lightweight
+client middleware sends every request to the ingest endpoint; a resilient event
+pipeline (RabbitMQ + circuit breaker) stores raw hits in MongoDB and rolls them up
+into PostgreSQL for fast analytics. A Next.js dashboard renders traffic, errors, and
+latency per tenant, with role-scoped access for platform admins and client users.
 
-This system monitors API endpoints, collects performance metrics, and triggers alerts based on configurable thresholds. It uses a microservices approach with separate services for request handling and asynchronous processing.
+---
 
-## 🏗️ Architecture
+## Why this exists (the SaaS idea)
 
-```
-┌─────────────────┐
-│   API Requests  │
-└────────┬────────┘
-         │
-    ┌────▼────────────────────┐
-    │   API Server (Port 5000) │
-    │   - Express.js           │
-    │   - JWT Auth             │
-    │   - Rate Limiting        │
-    └────┬────────────┬────────┘
-         │            │
-    ┌────▼───┐  ┌────▼──────────┐
-    │ MongoDB │  │  PostgreSQL   │
-    │ (NoSQL) │  │ (Relational)  │
-    └─────────┘  └───────────────┘
-         │
-    ┌────▼──────────────┐
-    │   RabbitMQ Queue  │
-    │   (api_hits)      │
-    └────┬──────────────┘
-         │
-    ┌────▼──────────────┐
-    │  Consumer Service │
-    │  (Background Job) │
-    └───────────────────┘
-```
+Most observability tools are heavy, expensive, and built for infra teams. API-Monitoring
+is built for **product engineers who just want to see their API traffic**:
 
-## 🛠️ Tech Stack
+- **Instrument in under 10 lines.** The `demo/demo_project/monitoring.js` middleware
+  shows the whole integration: wrap `res.end`, measure latency, `POST` one JSON object.
+- **Secure multi-tenancy by design.** A verified RBAC matrix (below) keeps super admins,
+  client admins, and read-only viewers strictly scoped to their own data.
+- **Resilient ingestion.** Ingest returns `202 Accepted` immediately; RabbitMQ + a
+  circuit breaker absorb spikes and outages without losing data.
+- **Zero dashboard code to see value.** Analytics, top endpoints, and time-series render
+  out of the box — no custom charts to wire up.
+- **Machine-to-machine first.** API-key auth (not user sessions) protects the ingest path.
 
-### Backend
-- **Runtime:** Node.js 22 (Alpine)
-- **Framework:** Express.js 5.2
-- **Language:** JavaScript (ES Modules)
+**Target users:** indie devs, startups, and platform teams who need per-client API
+visibility without standing up Prometheus + Grafana.
 
-### Databases
-- **PostgreSQL 15** - Relational data (structured metrics, configurations)
-- **MongoDB 6** - Document storage (flexible schema for events/logs)
+**The hook:** *"Point our middleware at your API. See your traffic in 60 seconds."*
 
-### Message Queue
-- **RabbitMQ 3** - Asynchronous message processing with dead-letter queue (DLQ)
+---
 
-### Security & Middleware
-- **Helmet** - HTTP security headers
-- **JWT** - Authentication (jsonwebtoken)
-- **bcryptjs** - Password hashing
-- **express-rate-limit** - Rate limiting per IP
+## RBAC matrix (enforced backend + frontend)
 
-### Logging & Monitoring
-- **Winston** - Structured logging
-- **pgAdmin** - PostgreSQL web UI
-- **RabbitMQ Management UI** - Queue monitoring
+| Role | Scope | Capabilities |
+| --- | --- | --- |
+| `super_admin` | Global | All clients, onboarding, user/key creation, global + per-tenant analytics |
+| `client_admin` | Own `clientId` | Manage own tenant's users & API keys, view own analytics |
+| `client_viewer` | Own `clientId` | Read-only: own client detail, users directory, analytics |
 
-### Utilities
-- **Mongoose** - MongoDB ODM
-- **pg** - PostgreSQL driver
-- **amqplib** - RabbitMQ client
-- **dotenv** - Environment configuration
-- **uuid** - Unique identifier generation
+### Endpoint access
 
-## 📦 Prerequisites
+| Endpoint | super_admin | client_admin | client_viewer |
+| --- | --- | --- | --- |
+| `POST /api/auth/onboard-super-admin` | public (first user only) | – | – |
+| `POST /api/auth/login` · `/logout` | ✓ | ✓ | ✓ |
+| `GET /api/auth/profile` | ✓ | ✓ | ✓ |
+| `POST /api/auth/register` | ✓ | – | – |
+| `POST /api/admin/clients/onboard` | ✓ | – | – |
+| `GET /api/admin/clients` | ✓ | – | – |
+| `GET /api/admin/clients/:clientId` | ✓ | own | own |
+| `GET /api/admin/clients/:clientId/users` | ✓ | own | own (read) |
+| `POST /api/admin/clients/:clientId/users` | ✓ | own | – |
+| `GET /api/admin/clients/:clientId/api-keys` | ✓ | own | – |
+| `POST /api/admin/clients/:clientId/api-keys` | ✓ | own | – |
+| `GET /api/analytics/dashboard` · `/stats` | global + `?clientId` | own | own (needs `canViewAnalytics`) |
+| `POST /api/hit` | API-key (machine) | API-key | API-key |
 
-- **Docker & Docker Compose** (for containerized setup)
-- **Node.js 22+** (for local development)
-- **npm** (Node package manager)
-- Git (optional, for version control)
+The dashboard mirrors this exactly: `super_admin` sees the **Clients** nav and
+onboarding; tenant roles see **My Client**; management buttons hide for viewers.
 
-## 🚀 Quick Start
+---
 
-### Using Docker Compose (Recommended)
-
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd API-Monitoring/Server
-   ```
-
-2. **Create environment file**
-   ```bash
-   cp .env.example .env
-   ```
-   Or create `.env` with:
-   ```env
-   NODE_ENV=development
-   PORT=5000
-   JWT_SECRET=your-super-secret-jwt-key
-   ```
-
-3. **Start all services**
-   ```bash
-   docker-compose up --build
-   ```
-
-4. **Verify services are running**
-   - API Server: http://localhost:5000
-   - pgAdmin: http://localhost:8080 (admin@pgadmin.org / admin)
-   - RabbitMQ UI: http://localhost:15672 (api_user / api_password)
-
-### Local Development
-
-1. **Install dependencies**
-   ```bash
-   npm install
-   ```
-
-2. **Configure environment**
-   Create `.env` file:
-   ```env
-   NODE_ENV=development
-   PORT=5000
-   MONGO_URI=mongodb://localhost:27017/api_monitoring_db
-   MONGO_DB_NAME=api_monitoring_db
-   PG_HOST=localhost
-   PG_PORT=5432
-   PG_DATABASE=api_monitoring_db
-   PG_USER=postgres
-   PG_PASSWORD=password
-   RABBITMQ_URL=amqp://guest:guest@localhost:5672
-   RABBITMQ_QUEUE=api_hits
-   JWT_SECRET=secure_jwt
-   RATE_LIMIT_WINDOW_MS=900000
-   RATE_LIMIT_MAX=1000
-   ```
-
-3. **Start development server**
-   ```bash
-   npm run dev
-   ```
-
-4. **Start consumer (in another terminal)**
-   ```bash
-   npm run processor
-   ```
-
-## 📁 Project Structure
+## Architecture
 
 ```
-Server/
-├── src/
-│   ├── server.js                    # Main API server entry point
-│   └── shared/
-│       └── config/
-│           ├── index.js             # Global configuration loader
-│           ├── mongo.js             # MongoDB connection manager
-│           ├── postgres.js          # PostgreSQL connection manager
-│           ├── rabbitmq.js          # RabbitMQ connection & channel setup
-│           └── logger.js            # Winston logger configuration
-├── scripts/
-│   └── init-postgres.sql            # PostgreSQL schema initialization
-├── docker-compose.yml               # Service orchestration
-├── Dockerfile                       # API server container image
-├── Dockerfile.consumer              # Consumer service container image
-├── package.json                     # Dependencies & scripts
-├── .gitignore                       # Git ignore rules
-└── README.md                        # This file
+                ┌────────────┐
+ client app ───▶│ POST /api/hit│  (x-api-key, canIngest)
+                └─────┬──────┘
+                      │ 202 Accepted
+                      ▼
+                 RabbitMQ (api_hits)  ── circuit breaker ──▶ consumer
+                      │                                                │
+                      │                                                ▼
+                      │                              MongoDB (raw hits) + PostgreSQL (endpoint_metrics)
+                      │                                                │
+   dashboard ◀── GET /api/analytics/* ◀────── processor rollups ◀─────┘
 ```
 
-## 🔧 Available NPM Scripts
+- **Ingest** validates and publishes events; never blocks the client.
+- **Processor** consumes, persists raw hits to Mongo, upserts aggregates to Postgres.
+- **Analytics** reads Postgres aggregates for fast dashboard queries.
+
+---
+
+## Repository Layout
+
+```
+API-Monitoring/
+├── README.md
+├── Docs/
+│   └── Engineering-Journal/      # architecture & implementation notes
+│       ├── day-01 … day-07      # build journal
+│       ├── engineering-decisions.md
+│       └── implementation-plan.md # RBAC matrix compliance plan
+├── Server/                       # Express backend (Docker multi-container)
+│   ├── docker-compose.yml        # postgres, mongo, rabbitmq, pgadmin, api-app, consumer
+│   ├── Dockerfile / Dockerfile.consumer
+│   ├── scripts/init-postgres.sql
+│   └── src/
+│       ├── server.js
+│       └── services/{analytics,auth,client,ingest,processor}
+│       └── shared/{config,constants,events,middleware,models,utils}
+├── demo/
+│   └── demo_project/            # sample API + drop-in monitoring middleware
+└── dashboard/                   # Next.js (React 19) analytics console
+    ├── app/(app)/               # dashboard, clients, settings
+    ├── components/  hooks/  lib/
+    └── next.config.ts           # rewrites /api/* → backend
+```
+
+---
+
+## Tech Stack
+
+- **Backend:** Node.js 22 + Express, ES modules, JWT auth, bcryptjs, Zod validation
+- **Datastores:** MongoDB (raw hits, users, clients, keys) + PostgreSQL (metrics)
+- **Messaging:** RabbitMQ with publisher confirms + circuit breaker
+- **Frontend:** Next.js 16, React 19, TanStack Query, Recharts, lucide-react
+- **Ops:** Docker / docker-compose, Helmet, CORS allowlist, rate limiting, Winston
+
+---
+
+## Prerequisites
+
+- Node.js 22+
+- Docker & Docker Compose (for the full backend stack)
+- A Vercel account (for the dashboard) — or any host that runs `next start`
+
+---
+
+## Quick Start (local)
+
+### 1. Backend
 
 ```bash
-# Start production server
-npm start
-
-# Start development server with auto-reload
-npm run dev
-
-# Start consumer/processor service
+cd Server
+npm install
+# create a .env (see Server/.env for the required keys)
+npm start                 # API on :5000
+# in another terminal, run the processor:
 npm run processor
-
-# Initialize system
-npm run init
-
-# Generate .env configuration
-npm run init:env
 ```
 
-## 🗄️ Services Overview
-
-### API Server (`api-app`)
-- Listens on port 5000
-- Handles HTTP requests
-- Authenticates with JWT
-- Applies rate limiting
-- Publishes metrics to RabbitMQ queue
-- Reads/writes to MongoDB and PostgreSQL
-
-### Consumer Service (`consumer`)
-- Background worker process
-- Reads messages from RabbitMQ queue `api_hits`
-- Processes metrics asynchronously
-- Writes to databases
-- Handles failed messages via Dead Letter Queue (DLQ)
-
-### PostgreSQL (`postgres`)
-- Port: 5432
-- User: api_monitoring_user
-- Database: api_monitoring_db
-- Stores structured data, configurations, and metrics
-
-### MongoDB (`mongo`)
-- Port: 27017
-- Database: api_monitoring_db
-- Stores document-based logs and flexible event data
-
-### RabbitMQ (`rabbitmq`)
-- AMQP Port: 5672
-- Management UI: http://localhost:15672
-- Default credentials: api_user / api_password
-- Main queue: `api_hits`
-- Dead Letter Queue: `api_hits.dlq`
-
-### pgAdmin (`pgadmin`)
-- Web UI: http://localhost:8080
-- Admin email: admin@pgadmin.org
-- Password: admin
-- Manage PostgreSQL databases visually
-
-## ⚙️ Environment Variables
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| NODE_ENV | development | Environment (development/production) |
-| PORT | 5000 | API server port |
-| MONGO_URI | mongodb://localhost:27017/api_monitoring_db | MongoDB connection string |
-| MONGO_DB_NAME | api_monitoring_db | MongoDB database name |
-| PG_HOST | localhost | PostgreSQL host |
-| PG_PORT | 5432 | PostgreSQL port |
-| PG_DATABASE | api_monitoring_db | PostgreSQL database |
-| PG_USER | postgres | PostgreSQL user |
-| PG_PASSWORD | password | PostgreSQL password |
-| RABBITMQ_URL | amqp://localhost:5672 | RabbitMQ connection URL |
-| RABBITMQ_QUEUE | api_hits | Queue name for API metrics |
-| JWT_SECRET | secure_jwt | Secret key for JWT tokens |
-| JWT_EXPIRES_IN | 24h | JWT token expiration |
-| RATE_LIMIT_WINDOW_MS | 900000 | Rate limit window in milliseconds |
-| RATE_LIMIT_MAX | 1000 | Max requests per window per IP |
-
-## 🔌 Database Schema
-
-### PostgreSQL
-Initialize schema by running SQL scripts in `scripts/init-postgres.sql` during container startup.
-
-### MongoDB
-Collections are created on-demand by the application.
-
-## 🚢 Deployment
-
-### Docker
-The project is fully containerized. Build and run:
+### 2. Full stack with Docker
 
 ```bash
-# Build images
-docker-compose build
-
-# Start services
-docker-compose up -d
-
-# View logs
-docker-compose logs -f api-app
-
-# Stop services
-docker-compose down
+cd Server
+docker compose up -d --build
+# postgres, mongo, rabbitmq, pgadmin, api-app, consumer all come up
+curl http://localhost:5000/health   # → healthy
 ```
 
-### Health Checks
-- API Server: GET /health (port 5000)
-- PostgreSQL: Health check via pg_isready
-- RabbitMQ: Health check via rabbitmq-diagnostics
+`scripts/init-postgres.sql` auto-creates the `endpoint_metrics` table on first boot.
 
-## 📝 Logging
+### 3. Dashboard
 
-Logs are written to the `logs/` directory:
-- `logs/error.log` - Error-level logs only
-- `logs/combined.log` - All logs
-- Console output in development mode (with colors)
-
-## 🔐 Security Considerations
-
-- JWT authentication for API requests
-- Password hashing with bcryptjs
-- Helmet middleware for HTTP security headers
-- Rate limiting to prevent abuse
-- Environment variables for sensitive data (never commit .env)
-- PostgreSQL password protection
-- RabbitMQ credentials management
-
-## 📊 Monitoring
-
-- **pgAdmin**: Database management interface (http://localhost:8080)
-- **RabbitMQ UI**: Queue monitoring (http://localhost:15672)
-- **Application Logs**: `logs/` directory
-- **Health Endpoints**: Available on API server
-
-## 🐛 Troubleshooting
-
-### Services won't start
 ```bash
-# Check Docker containers
-docker-compose ps
-
-# View service logs
-docker-compose logs <service-name>
-
-# Rebuild containers
-docker-compose up --build
+cd dashboard
+npm install
+npm run dev             # http://localhost:3000
 ```
 
-### Database connection errors
-- Verify PostgreSQL is running and credentials match
-- Check MongoDB connection string in .env
-- Ensure ports 5432, 27017, 5672 are not blocked
+The dashboard proxies `/api/*` to the backend via `next.config.ts` rewrites, so the
+auth cookie stays first-party (no CORS configuration required for local dev).
 
-### RabbitMQ connection issues
-- Access Management UI: http://localhost:15672
-- Verify credentials: api_user / api_password
-- Check RabbitMQ container logs
+### 4. Try it in 60 seconds
 
-## 🤝 Contributing
+Onboard the first super admin, then point the demo API at the backend:
 
-(To be updated)
+```bash
+# 1) onboard super admin (public only until the first user exists)
+curl -X POST http://localhost:5000/api/auth/onboard-super-admin \
+  -H 'Content-Type: application/json' \
+  -d '{"username":"admin","email":"admin@local","password":"Admin123"}'
 
-## 📚 Next Steps
+# 2) run the demo client (it POSTs hits to /api/hit)
+cd demo/demo_project && npm install && npm start
+```
 
-- [ ] Implement API server routes (src/server.js)
-- [ ] Complete PostgreSQL schema (scripts/init-postgres.sql)
-- [ ] Implement consumer service logic
-- [ ] Add authentication endpoints
-- [ ] Create API documentation
-- [ ] Add unit tests
-- [ ] Add integration tests
-- [ ] Set up CI/CD pipeline
+Open the dashboard, log in, and watch traffic appear.
 
-## 📄 License
+---
+
+## Demo Data (seed an attractive dashboard)
+
+Two scripts populate realistic traffic so the dashboard looks alive on day one.
+
+- **HTTP seed (`scripts/seed-hits.mjs`)** — logs in as super admin, creates a demo
+  client + API key, then loops `POST /api/hit` with a realistic mix of services,
+  endpoints, status codes, and latency. Re-runnable.
+- **Direct DB backfill (`scripts/backfill-metrics.mjs`)** — writes historical time
+  buckets straight into Mongo + Postgres (mirrors the processor's rollup) so the
+  time-series chart shows past days, not just "now".
+
+Both are documented in `Docs/` and require no application code changes.
+
+---
+
+## Deploying to Production
+
+### Backend — generic Linux VPS (Docker Compose)
+
+1. Provision a VPS, install Docker + docker-compose.
+2. Copy `Server/` up; create a production `.env`:
+   - `JWT_SECRET` (generate a strong secret), `NODE_ENV=production`, `PORT=5000`
+   - `MONGO_URI`, `PG_*`, `RABBITMQ_URL`, `RABBITMQ_QUEUE=api_hits`
+   - `FRONTEND_ORIGIN` = your Vercel dashboard URL (safety net)
+3. Add a `.dockerignore` excluding `node_modules`, `logs`, `.env` to avoid leaking
+   secrets into the image.
+4. `docker compose up -d --build`. Verify `curl http://<IP>:5000/health`.
+5. (Optional) Put nginx in front as a reverse proxy and add Let's Encrypt TLS via
+   certbot when you have a domain.
+
+> The compose file already wires `api-app` → `postgres` + `rabbitmq` healthchecks
+> and the `consumer` service, so the pipeline runs end-to-end on one host.
+
+### Frontend — Vercel
+
+1. Import the `dashboard/` folder into Vercel.
+2. Set the build env `BACKEND_URL=http://<VPS-IP>:5000` (or your domain).
+3. Leave `NEXT_PUBLIC_API_BASE_URL` empty — all calls go same-origin through the
+   `/api/*` rewrite, keeping the httpOnly `authToken` cookie first-party.
+4. Deploy. Log in through the dashboard and the cookie-based session just works.
+
+---
+
+## Environment Variables (backend)
+
+| Variable | Purpose |
+| --- | --- |
+| `PORT` | API port (default 5000) |
+| `MONGO_URI`, `MONGO_DB_NAME` | MongoDB connection |
+| `PG_HOST`, `PG_PORT`, `PG_DATABASE`, `PG_USER`, `PG_PASSWORD` | PostgreSQL |
+| `RABBITMQ_URL`, `RABBITMQ_QUEUE` | Event bus |
+| `JWT_SECRET`, `JWT_EXPIRES_IN` | Auth tokens |
+| `FRONTEND_ORIGIN` | CORS allowlist (comma-separated) |
+| `RATE_LIMIT_WINDOW_MS`, `RATE_LIMIT_MAX` | Auth endpoint throttle |
+| `VALID_API_KEYS` | Optional static key allowlist |
+
+See `Server/.env` for a working local example.
+
+---
+
+## Useful Files
+
+- `Server/src/server.js` — app entry point and route mounting
+- `Server/src/shared/config/` — connection + runtime config
+- `Server/scripts/init-postgres.sql` — relational schema
+- `demo/demo_project/monitoring.js` — the drop-in integration middleware
+- `dashboard/next.config.ts` — `/api/*` → backend rewrite
+- `Docs/Engineering-Journal/implementation-plan.md` — RBAC matrix compliance plan
+
+---
+
+## Status
+
+- Server backend: ✅ active (multi-container, hardened)
+- Event pipeline: ✅ active (RabbitMQ + circuit breaker)
+- Dashboard: ✅ complete (role-gated, Vercel-ready)
+- Demo data tooling: ✅ seed + backfill scripts
+
+## License
 
 ISC
-
-## ✉️ Support
-
-For issues or questions, please open an issue in the repository.
-
