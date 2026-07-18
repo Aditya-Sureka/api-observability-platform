@@ -19,7 +19,6 @@ export class AnalyticsController {
   async getStats(req, res, next) {
     try {
       const { startTime, endTime } = req.query;
-      const clientId = req.user.clientId;
 
       const isAdmin = await this.ensureCanViewAnalytics(req);
       const finalClientId = await this.resolveFinalClientId(req, isAdmin);
@@ -66,7 +65,7 @@ export class AnalyticsController {
   }
 
   async ensureCanViewAnalytics(req) {
-    if (!req.user || !req.user.clientId) {
+    if (!req.user || !req.user.userId) {
       throw new AppError("Unauthorized: Missing user information", 401);
     }
     const isSuperAdmin = await this.authService.checkSuperAdminPermissions(
@@ -125,7 +124,6 @@ export class AnalyticsController {
   async getDashboard(req, res, next) {
     try {
       const { startTime, endTime } = req.query;
-      const clientId = req.user.clientId;
 
       const isSuperAdmin = await this.ensureCanViewAnalytics(req);
       const finalClientId = await this.resolveFinalClientId(req, isSuperAdmin);

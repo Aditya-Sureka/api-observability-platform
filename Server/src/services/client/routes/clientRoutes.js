@@ -31,4 +31,19 @@ router.get("/admin/clients/:clientId/api-keys", (req, res, next) =>
   clientController.getClientApiKeys(req, res, next),
 );
 
+// List all clients (super admin only)
+router.get("/admin/clients", (req, res, next) =>
+  clientController.listClients(req, res, next),
+);
+
+// Get a single client by ID (super admin only)
+router.get("/admin/clients/:clientId", (req, res, next) =>
+  clientController.getClient(req, res, next),
+);
+
+// List users of a client (super admin, or authorized client member)
+router.get("/admin/clients/:clientId/users", (req, res, next) =>
+  clientController.listClientUsers(req, res, next),
+);
+
 export default router;

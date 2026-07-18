@@ -40,9 +40,22 @@ const config = {
     maxRequests: parseInt(process.env.RATE_LIMIT_MAX || "1000", 10), // 1000 REQ / 15 MIN PER IP
   },
 
+  // Allowlist of frontend origins permitted to make credentialed (cookie)
+  // requests. Leave empty to deny all cross-origin browser requests
+  // (same-origin / non-browser requests are still allowed).
+  cors: {
+    allowedOrigins: (process.env.FRONTEND_ORIGIN || "")
+      .split(",")
+      .map((o) => o.trim())
+      .filter(Boolean),
+  },
+
   cookie: {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
+    // SameSite=Lax protects against CSRF while still allowing the
+    // first-party cookie to be sent on normal navigations/submissions.
+    sameSite: "lax",
     expiresIn: 24 * 60 * 60 * 1000, // 24 hours
   },
 };

@@ -305,4 +305,77 @@ export class ClientService {
       throw error;
     }
   }
+
+  /**
+   * Validate a MongoDB ObjectId string.
+   * @param {String} id
+   * @returns {Boolean}
+   */
+  isValidObjectId(id) {
+    return typeof id === "string" && /^[a-f\d]{24}$/i.test(id);
+  }
+
+  /**
+   * List clients with pagination (super admin).
+   * @param {Object} options - { limit, skip }
+   * @returns {Object} - { clients, total }
+   */
+  async listClients({ limit = 50, skip = 0 } = {}) {
+    try {
+      const filters = {};
+      const clients = await this.clientRepository.find(filters, { limit, skip });
+      const total = await this.clientRepository.count(filters);
+      return { clients, total };
+    } catch (error) {
+      logger.error("Error listing clients", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get a single client by ID (super admin).
+   * @param {String} clientId
+   * @returns {Object}
+   */
+  async getClient(clientId) {
+    try {
+      if (!this.isValidObjectId(clientId)) {
+        throw new AppError("Invalid clientId", 400);
+      }
+      const client = await this.clientRepository.findById(clientId);
+      if (!client) {
+        throw new AppError("Client not found", 404);
+      }
+      return client;
+    } catch (error) {
+      logger.error("Error getting client", error);
+      throw error;
+    }
+  }
+
+  /**
+   * List users belonging to a client.
+   * @param {String} clientId
+   * @param {Object} user - The requesting user
+   * @returns {Array}
+   */
+  async listClientUsers(clientId, user) {
+    try {
+      if (!this.isValidObjectId(clientId)) {
+        throw new AppError("Invalid clientId", 400);
+      }
+      if (!this.canUserAccessClient(user, clientId)) {
+        throw new AppError("Access denied to this client", 403);
+      }
+      const client = await this.clientRepository.findById(clientId);
+      if (!client) {
+        throw new AppError("Client not found", 404);
+      }
+      const users = await this.userRepository.findByClientId(clientId);
+      return users.map((u) => this.formatClientForResponse(u));
+    } catch (error) {
+      logger.error("Error listing client users", error);
+      throw error;
+    }
+  }
 }

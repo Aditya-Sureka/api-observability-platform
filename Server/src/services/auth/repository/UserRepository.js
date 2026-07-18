@@ -114,6 +114,28 @@ class MongoUserRepository extends BaseRepository {
       throw error;
     }
   }
+
+  /**
+   * Finds users belonging to a client.
+   * @param {string} clientId - The client ID to filter users by.
+   * @param {Object} options - Query options (limit, skip).
+   * @returns {Promise<Array>} - Returns an array of user objects (password excluded).
+   */
+  async findByClientId(clientId, options = {}) {
+    try {
+      const { limit = 100, skip = 0 } = options;
+      const users = await this.model
+        .find({ clientId })
+        .select("-password")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit);
+      return users;
+    } catch (error) {
+      logger.error("Error finding users by clientId", error);
+      throw error;
+    }
+  }
 }
 
 export default new MongoUserRepository();

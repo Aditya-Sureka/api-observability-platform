@@ -27,7 +27,15 @@ const app = express();
 app.use(helmet());
 app.use(
   cors({
-    origin: true,
+    origin: (origin, callback) => {
+      // No Origin header => non-browser / server-to-server / same-origin request.
+      if (!origin) return callback(null, true);
+      const allowed = config.cors.allowedOrigins;
+      if (allowed.length === 0 || allowed.includes(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error(`CORS: origin not allowed -> ${origin}`));
+    },
     credentials: true,
   }),
 );

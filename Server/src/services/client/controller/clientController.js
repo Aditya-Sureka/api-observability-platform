@@ -95,4 +95,51 @@ export class ClientController {
             next(error);
         }
     }
+
+    /**
+     * List all clients (super admin only).
+     */
+    async listClients(req, res, next) {
+        try {
+            const isSuperAdmin = await this.authService.checkSuperAdminPermissions(req.user.userId);
+            if (!isSuperAdmin) {
+                return res.status(403).json(ResponseFormatter.error("Forbidden: insufficient permissions.", 403));
+            }
+            const limit = Math.min(parseInt(req.query.limit, 10) || 50, 100);
+            const page = parseInt(req.query.page, 10) || 1;
+            const skip = (page - 1) * limit;
+            const { clients, total } = await this.clientService.listClients({ limit, skip });
+            return res.status(200).json(ResponseFormatter.paginated(clients, page, limit, total));
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    /**
+     * Get a single client by ID (super admin only).
+     */
+    async getClient(req, res, next) {
+        try {
+            const { clientId } = req.params;
+            if (!this.clientService.canUserAccessClient(req.user, clientId)) {
+                return res.status(403).json(ResponseFormatter.error("Forbidden: insufficient permissions.", 403));
+            }
+            const client = await this.clientService.getClient(clientId);
+            return res.status(200).json(ResponseFormatter.success(client, "Client retrieved successfully", 200));
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    /**
+     * List users of a client (super admin, or client admin/viewer of that client).
+     */
+    async listClientUsers(req, res, next) {
+        try {
+            const users = await this.clientService.listClientUsers(req.params.clientId, req.user);
+            return res.status(200).json(ResponseFormatter.success(users, "Client users retrieved successfully", 200));
+        } catch (error) {
+            next(error);
+        }
+    }
 }
